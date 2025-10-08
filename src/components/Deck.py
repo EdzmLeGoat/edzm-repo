@@ -96,9 +96,9 @@ class Deck:
       firstIndex = random.randint(10, 42)
       secondIndex = random.randint(firstIndex + 1, 52)
       self.cards = self.cards[:firstIndex] + self.cards[secondIndex:] +  self.cards[secondIndex:firstIndex]
-  def riffleShuffleList(self, list: list[Card], evenness: float) -> list[Card]:
+  def riffleShuffleList(self, list: list[Card], evenness: float, sliceEvenness) -> list[Card]:
     midList = len(list) // 2
-    cutIndex = random.randint(midList - 2, midList + 2) # Cut near the middle
+    cutIndex = random.randint(midList - sliceEvenness, midList + sliceEvenness) # Cut near the middle
     deck1 = list[:cutIndex]
     deck2 = list[cutIndex:]
     decks = [deck1, deck2]
@@ -115,9 +115,9 @@ class Deck:
     shuffled_deck.extend(deck1)
     shuffled_deck.extend(deck2)
     return shuffled_deck
-  def riffleShuffle(self, riffles, evenness: float = 0.5) -> None:
+  def riffleShuffle(self, riffles, evenness: float, sliceEvenness: int) -> None:
     for _ in range(riffles):
-      self.cards = self.riffleShuffleList(self.cards, evenness)
+      self.cards = self.riffleShuffleList(self.cards, evenness, sliceEvenness)
   def deal(self, dealerIndex: int):
     for _ in range(2):
       for i in range(len(self.players)):
@@ -179,19 +179,19 @@ class Deck:
       self.discarded.extend(allDiscardedHands[thrower])
       
     #want less evenness here because discarded cards are more likely to be in clumps
-    self.discarded = self.riffleShuffleList(self.discarded, 0.3)
+    self.discarded = self.riffleShuffleList(self.discarded, 0.3, 0)
     self.cards.extend(self.discarded)
     self.discarded = []
     self.results = []
 
   def shuffle(self, method: ShuffleMethod) -> None:
     if method == ShuffleMethod.Riffle:
-      self.riffleShuffle(2, 0.9)
+      self.riffleShuffle(2, 0.9, 4)
     elif method == ShuffleMethod.Cut:
       self.cutShuffle(3)
     elif method == ShuffleMethod.Mover:
       self.moverShuffle(5)
     elif method == ShuffleMethod.Pharaoh:
       #a pharaoh shuffle is just a more accurate riffle shuffle
-      self.riffleShuffle(2, 0.98)   
+      self.riffleShuffle(2, 0.98, 2)   
   

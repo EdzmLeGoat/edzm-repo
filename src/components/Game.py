@@ -27,12 +27,28 @@ class Game:
     self.decks[0].shuffle(self.players[self.dealerIndex])
 
   def checkPlayerOut(self, playerIndices: list[int]) -> None:
+    playersOut = []
     for index in playerIndices:
       if(self.players[index].chips <= 0):
         print("Player " + self.players[index].name + " is out of chips.")
         print("Players left: " + str(len(self.players)) + ".")
+        playersOut.append(index)
         if(len(self.players) == 1):
           print("Game over. " + self.players[0].name + " wins!")    
+    for index in playersOut:
+      self.players.pop(index)
+  
+  def checkAllPlayerOut(self) -> None:
+    indicesOut = []
+    for player in self.players:
+      if(player.chips <= 0):
+        print("Player " + player.name + " is out of chips.")
+        print("Players left: " + str(len(self.players)) + ".")
+        indicesOut.append(self.players.index(player))
+        if(len(self.players) == 1):
+          print("Game over. " + self.players[0].name + " wins!")   
+    for index in indicesOut:
+      self.players.pop(index)
 
   def handlePlayerRound(self, playersIn: list[Player], pools: list[Pool], poolIndex: int, round: int) -> list[Player]:
     someoneAllIn = False
@@ -40,21 +56,21 @@ class Game:
     poolIncrease = 0
     for player in playersIn:
       player.getRank()
-      bet = player.decideAction(poolIncrease, someoneAllIn, round)
-      pools[poolIndex].addChips(bet)
-      pools[poolIndex].setIncrease(bet)
+      #if we're not all in
+      if(bet != -1):
+        bet = player.decideAction(poolIncrease, someoneAllIn, round)
+        pools[poolIndex].addChips(bet)
+        pools[poolIndex].setIncrease(bet)
       if player.isAllIn:
         someoneAllIn = True
-      
-    for player in playersIn:
-      if player.isAllIn:
-        pools.append(Pool())
-        poolIndex += 1
         #since when a player goes all in, they create a new pool that
         #they are not eligible for
+        pools.append(Pool())
+        poolIndex += 1
         for player in self.players:
           if not player.isAllIn:
             player.eligiblePools.append(pools[poolIndex])
+        
     pools[poolIndex].resetIncrease()
     
     for player in playersIn:
@@ -142,6 +158,7 @@ class Game:
     
     #reset
     self.reset(dealingDeckIndex)
+    
   def simulate(self, rounds: int) -> None:
     if rounds == -1:
       condition = True

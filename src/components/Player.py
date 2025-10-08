@@ -212,8 +212,38 @@ class Player:
   
   def reportChips(self) -> str:
     return f"Chips left: {self.chips}"
+  
+  def randDecision(self, probability: float, betOne: Bet, betTwo: Bet) -> Bet:
+    if(random.random() < probability):
+      return betOne
+    return betTwo
   #poolIncrease: how much the pool has increased by in the round
   #someoneAllIn: if someone has all inned in the current round
+  
+  def runRegularLogic(self, poolIncrease: int):
+    raiseAmount = 0
+    if(self.handRating > 25):
+      if self.chips > 50:
+        #great hand
+        decision = Bet.Raise
+        raiseAmount = 20
+      else:
+        decision = Bet.StayIn
+    elif poolIncrease > self.chips / 8:
+      if poolIncrease > self.chips / 4:
+        if random.random() < 0.2:
+          decision = Bet.StayIn
+        else:
+          decision = Bet.Fold
+      else:
+        if self.handRating > 20:
+          decision = Bet.StayIn
+        else:
+          decision = Bet.Fold
+    else:
+      decision = Bet.StayIn
+    return [decision, raiseAmount]
+    
   def decideAction(self, poolIncrease: int, someoneAllIn: bool, bettingRound: int) -> int:
     if not self.isAllIn:
       if(poolIncrease > self.chips):
@@ -227,14 +257,17 @@ class Player:
           if(self.handRating > 10):
             if self.chips > 40:
               #raise cuz hand is good
-              decision = Bet.Raise
+              decision = self.randDecision(0.8, Bet.Raise, Bet.StayIn)
               raiseAmount = 10
             else:
-              decision = Bet.StayIn
+              if(poolIncrease > self.chips / 4):
+                decision = self.randDecision(0.2, Bet.StayIn, Bet.Fold)
+              else:
+                decision = Bet.StayIn
           elif(self.handRating > 4):
-            if self.chips > 40:
+            if self.chips > 60:
               #raise a bit
-              decision = Bet.Raise
+              decision = self.randDecision(0.6, Bet.Raise, Bet.StayIn)
               raiseAmount = 5
             else:
               decision = Bet.StayIn
@@ -243,14 +276,14 @@ class Player:
             if(poolIncrease > 20 or poolIncrease > self.chips / 4):
               decision = Bet.Fold
             #stay in
-            decision = Bet.StayIn
+            decision = self.randDecision(0.7, Bet.StayIn, Bet.Fold)
         elif(bettingRound > 1): #2, 3, or 4
           bluffCaller = 25 + (bettingRound-2) * 5
           bluffChance = 15 + (bettingRound-2) * 5
           if(self.handRating > 40):
             #extremely good hand so play a lot of chips
             #go all in to punish those who think it's a bluff
-            decision = Bet.AllIn
+            decision = self.randDecision(0.3 + (bettingRound - 2)*0.1, Bet.AllIn, Bet.StayIn)
           else:
             #bluffing, only bluff if low on chips because you need to take a risky chance
             if(random.randint(1,bluffChance) and not someoneAllIn and self.chips < 20):
@@ -262,31 +295,14 @@ class Player:
                 if(self.handRating < bluffCaller and not random.randint(1,100) < self.handRating * 3):
                   #fold because we didn't call the bluff
                   decision = Bet.Fold
-                else: #we called the bluff
-                  if(self.handRating > 25):
-                    if self.chips > 50:
-                      #stay in cause good hand
-                      decision = Bet.StayIn
-                    else:
-                      #if someone is all in, the call cost is gonna be a lot
-                      #and it's not worth it if you have less than 50 chips
-                      decision = Bet.Fold
+                else: #we called the bluff, so run regular logic.
+                  results = self.runRegularLogic(poolIncrease)
+                  decision = results[0]
+                  raiseAmount = results[1]
               else:
-                if(self.handRating > 25):
-                  if self.chips > 50:
-                    #great hand
-                    decision = Bet.Raise
-                    raiseAmount = 20
-                  else:
-                    decision = Bet.StayIn
-                elif self.handRating > 15:
-                  decision = Bet.StayIn
-                else:
-                  if poolIncrease < self.chips / 8:
-                    #you can afford to stay in
-                    decision = Bet.StayIn
-                  else:
-                    decision = Bet.Fold
+                results = self.runRegularLogic(poolIncrease)
+                decision = results[0]
+                raiseAmount = results[1]
             
         if decision == Bet.Fold:
           return self.doFold()
@@ -302,7 +318,8 @@ class Player:
           elif decision == Bet.AllIn:
             self.doCall(poolIncrease)
             return self.goAllIn()
+          
     else: #you are all in, you can't bet
       return -1 #you can't bet
-    return 0
-      
+    return 0 #catchall
+
