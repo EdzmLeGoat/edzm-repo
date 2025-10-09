@@ -1,10 +1,10 @@
 #imports
 import random 
 import math
-from Player import Player
-from Deck import Deck
-from Pool import Pool
-from Player import Bet
+from components.Player import Player
+from components.Deck import Deck
+from components.Pool import Pool
+from components.Player import Bet
 
 #main class
 class Game:

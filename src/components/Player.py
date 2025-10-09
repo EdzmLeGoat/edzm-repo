@@ -2,13 +2,8 @@
 from enum import Enum
 import random 
 import math
-from Deck import Card
-from Deck import NoCard
-from Pool import Pool
-from main import initialChips
-from Deck import ranks
-from Deck import suits
-
+from components.Card import Card, NoCard, ranks, suits
+from components.Pool import Pool
 #enums
 class ShuffleMethod(Enum):
   Riffle = 0,
@@ -53,7 +48,7 @@ class Player:
   isAllIn: bool = False
   eligiblePools: list[Pool] = []
   handRating: int = 0
-  def __init__(self, name: str, shuffleMethod: ShuffleMethod, initialChips: int = initialChips):
+  def __init__(self, name: str, shuffleMethod: ShuffleMethod, initialChips: int):
     self.name = name
     self.method = shuffleMethod
     self.chips = initialChips
