@@ -39,7 +39,7 @@ class Player:
   cardOne: Card = NoCard()
   cardTwo: Card = NoCard()
   name: str
-  method: ShuffleMethod
+  methods: list[ShuffleMethod]
   chips: int
   bet: Bet
   hasBigBlind: bool = False
@@ -48,9 +48,9 @@ class Player:
   isAllIn: bool = False
   eligiblePools: list[Pool] = []
   handRating: int = 0
-  def __init__(self, name: str, shuffleMethod: ShuffleMethod, initialChips: int):
+  def __init__(self, name: str, shuffleMethod: list[ShuffleMethod], initialChips: int):
     self.name = name
-    self.method = shuffleMethod
+    self.methods = shuffleMethod
     self.chips = initialChips
     self.bet = Bet.Null
   
@@ -174,6 +174,14 @@ class Player:
   def winChips(self, amount: int) -> int:
     self.chips += amount
     return amount
+  
+  def payBlind(self, amount: int) -> None:
+    if(amount == 5):
+      self.loseChips(5)
+      print(f"{self.name} pays the small blind price of 5 chips. {self.reportChips()}")
+    else:
+      self.loseChips(10)
+      print(f"{self.name} pays the big blind price of 10 chips. {self.reportChips()}")
   
   def doRaise(self, amount: int) -> int:
     self.bet = Bet.Raise

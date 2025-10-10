@@ -83,8 +83,6 @@ class Deck:
       for i in range(len(self.players)):
         #needs to go counterclockwise from the dealer
         dealingIndex = (dealerIndex + i) % len(self.players)
-        if(dealingIndex < 0):
-          dealingIndex += len(self.players)
         player = self.players[dealingIndex]
         player.receiveCard(self.cards.pop(0))
     
@@ -144,14 +142,15 @@ class Deck:
     self.discarded = []
     self.results = []
 
-  def shuffle(self, method: ShuffleMethod) -> None:
-    if method == ShuffleMethod.Riffle:
-      self.riffleShuffle(2, 0.9, 4)
-    elif method == ShuffleMethod.Cut:
-      self.cutShuffle(3)
-    elif method == ShuffleMethod.Mover:
-      self.moverShuffle(5)
-    elif method == ShuffleMethod.Pharaoh:
-      #a pharaoh shuffle is just a more accurate riffle shuffle
-      self.riffleShuffle(2, 0.98, 2)   
+  def shuffle(self, methods: list[ShuffleMethod]) -> None:
+    for method in methods:
+      if method == ShuffleMethod.Riffle:
+        self.riffleShuffle(2, 0.9, 4)
+      elif method == ShuffleMethod.Cut:
+        self.cutShuffle(3)
+      elif method == ShuffleMethod.Mover:
+        self.moverShuffle(5)
+      elif method == ShuffleMethod.Pharaoh:
+        #a pharaoh shuffle is just a more accurate riffle shuffle
+        self.riffleShuffle(2, 0.98, 2)   
   

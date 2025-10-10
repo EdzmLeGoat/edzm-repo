@@ -1,5 +1,4 @@
-const links = [];
-async function getLinks(url) {
+async function getLinks(url, links) {
   try {
     const response = await fetch(url, {
       method: "GET",
@@ -86,15 +85,16 @@ function displayLinks(links) {
   console.log("all hands displayed");
 }
 
-async function grabAllLinks(targetUrl) {
-  for (let i = 0; i < 13; i++) {
+async function grabAllLinks(targetUrl, llist) {
+  let pages = 14;
+  for (let i = 0; i < pages; i++) {
     console.log("getting html of page " + (i + 1));
     pageUrl = targetUrl + "?page=" + (i + 1);
-    await getLinks(targetUrl);
+    await getLinks(pageUrl, llist);
     console.log("done with page " + (i + 1));
   }
   console.log("all links collected");
-  displayLinks(links);
+  displayLinks(llist);
 }
 
 const targetUrl = "https://poker.rchase.com/";
@@ -104,5 +104,8 @@ if (linksList && linksList.length !== 0) {
   linksList = JSON.parse(localStorage.getItem("links"));
   displayLinks(linksList);
 } else {
-  grabAllLinks(targetUrl);
+  const listOfLinks = [];
+  grabAllLinks(targetUrl, listOfLinks);
 }
+//https://poker.rchase.com/hand/257916966869/history
+//https://poker.rchase.com/hand/257916966869/history

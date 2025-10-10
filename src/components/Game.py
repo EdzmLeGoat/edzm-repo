@@ -15,16 +15,18 @@ class Game:
   smallBlindIndex: int = 2
   bigBlindIndex: int = 3
   trial: int = 0
+  shufflingDeckIndex: int = 0
+  dealingDeckIndex: int = 1
   
   #requires 3 people to start
-  def __init__(self, players):
+  def __init__(self, players: list[Player]):
     if(len(players) < 4):
       raise ValueError("Must have at least 4 players.")
     self.players = players
     self.decks = [Deck(players), Deck(players)]
     self.players[self.smallBlindIndex].hasSmallBlind = True
     self.players[self.bigBlindIndex].hasBigBlind = True
-    self.decks[0].shuffle(self.players[self.dealerIndex])
+    self.decks[self.shufflingDeckIndex].shuffle(self.players[self.dealerIndex].methods)
 
   def checkPlayerOut(self, playerIndices: list[int]) -> None:
     playersOut = []
@@ -52,15 +54,13 @@ class Game:
 
   def handlePlayerRound(self, playersIn: list[Player], pools: list[Pool], poolIndex: int, round: int) -> list[Player]:
     someoneAllIn = False
-    #first bet
     poolIncrease = 0
     for player in playersIn:
       player.getRank()
-      #if we're not all in
+      bet = player.decideAction(poolIncrease, someoneAllIn, round)
       if(bet != -1):
-        bet = player.decideAction(poolIncrease, someoneAllIn, round)
         pools[poolIndex].addChips(bet)
-        pools[poolIndex].setIncrease(bet)
+        pools[poolIndex].addIncrease(bet)
       if player.isAllIn:
         someoneAllIn = True
         #since when a player goes all in, they create a new pool that
@@ -119,13 +119,15 @@ class Game:
     self.decks[dealingDeckIndex].recycleDiscardedCards()
     self.trial += 1
   def playRound(self):
-    print("Starting Round " + str(self.trial) + ".")
+    print("Starting Round " + str(self.trial + 1) + ".")
     
     poolIndex = 0
     pools: list[Pool] = []
     pools.append(Pool())
-    pools[poolIndex].addChips(self.players[self.bigBlindIndex].loseChips(10))
-    pools[poolIndex].addChips(self.players[self.smallBlindIndex].loseChips(5)) 
+    bigBlindPlayer = self.players[self.bigBlindIndex]
+    smallBlindPlayer = self.players[self.smallBlindIndex]
+    bigBlindPlayer.payBlind(10)
+    smallBlindPlayer.payBlind(5)
     self.checkPlayerOut([self.smallBlindIndex, self.bigBlindIndex])
     
     #set up players
@@ -134,42 +136,41 @@ class Game:
       player.eligiblePools.append(pools[poolIndex])
     
     #deal cards
-    shufflingDeckIndex = (self.trial + 1) % 2
-    dealingDeckIndex = (self.trial) % 2
-    self.decks[shufflingDeckIndex].shuffle(self.players[self.preDealerIndex].method)
+    print(self.dealingDeckIndex)
+    self.shufflingDeckIndex = (self.shufflingDeckIndex + 1) % len(self.decks)
+    self.dealingDeckIndex = (self.dealingDeckIndex + 1) % len(self.decks)
+    self.decks[self.shufflingDeckIndex].shuffle(self.players[self.preDealerIndex].methods)
     self.players[self.dealerIndex].isDealer = True
-    self.decks[dealingDeckIndex].deal(self.dealerIndex)
+    self.decks[self.dealingDeckIndex].deal(self.dealerIndex)
     
     #first bets
-    self.handlePlayerRound(playersIn, pools, poolIndex, 1)
+    playersIn = self.handlePlayerRound(playersIn, pools, poolIndex, 1)
     #3 revealed
-    self.decks[dealingDeckIndex].revealThree()
+    self.decks[self.dealingDeckIndex].revealThree()
     #second bet
-    self.handlePlayerRound(playersIn, pools, poolIndex, 2)
+    playersIn = self.handlePlayerRound(playersIn, pools, poolIndex, 2)
     #4 revealed
-    self.decks[dealingDeckIndex].revealNext()
+    self.decks[self.dealingDeckIndex].revealNext()
     #third bet
-    self.handlePlayerRound(playersIn, pools, poolIndex, 3)
+    playersIn = self.handlePlayerRound(playersIn, pools, poolIndex, 3)
     #final card revealed
-    self.decks[dealingDeckIndex].revealNext()
+    self.decks[self.dealingDeckIndex].revealNext()
     
     #decide winner
     self.decideWinner(playersIn)
     
     #reset
-    self.reset(dealingDeckIndex)
+    self.reset(self.dealingDeckIndex)
     
-  def simulate(self, rounds: int) -> None:
+  def simulate(self, rounds: int = -1) -> None:
     if rounds == -1:
-      condition = True
-      onlyPlayer = True
-      for player in self.players:
-        if(player.chips == 0 and onlyPlayer):
-          onlyPlayer = False
-        else:
-          condition = False
-      while not condition:
+      done = False
+      while not done:
         self.playRound()
+        if(len(self.players) == 1):
+          done = True
     else:
       for _ in range(rounds):
         self.playRound()
+        if(len(self.players) == 1):
+          break

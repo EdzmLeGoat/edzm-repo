@@ -14,5 +14,5 @@ class Pool:
   def resetIncrease(self) -> None:
     self.increase = 0
     
-  def setIncrease(self, amount: int) -> None:
-    self.increase = amount
+  def addIncrease(self, amount: int) -> None:
+    self.increase += amount
