@@ -53,6 +53,7 @@ class Game:
       self.players.pop(index)
 
   def handlePlayerRound(self, playersIn: list[Player], pools: list[Pool], poolIndex: int, round: int) -> list[Player]:
+    print("round:", + round)
     someoneAllIn = False
     poolIncrease = 0
     for player in playersIn:
@@ -76,6 +77,8 @@ class Game:
     for player in playersIn:
       if player.bet == Bet.Fold:
         playersIn.remove(player)
+        
+    print()
     return playersIn
   
   def decideWinner(self, playersIn: list[Player]) -> None:
