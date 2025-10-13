@@ -55,10 +55,10 @@ class Player:
     self.bet = Bet.Null
   
   def receiveCard(self, card: Card) -> None:
-    if(self.cardOne != None):
-      self.cardTwo = card
-    else: 
+    if(type(self.cardOne) == NoCard):
       self.cardOne = card
+    else: 
+      self.cardTwo = card
       
   #presupposes that both cards are given at this point
   def forfeitCards(self) -> list[Card]:

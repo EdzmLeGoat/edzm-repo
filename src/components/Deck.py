@@ -84,7 +84,10 @@ class Deck:
         #needs to go counterclockwise from the dealer
         dealingIndex = (dealerIndex + i) % len(self.players)
         player = self.players[dealingIndex]
-        player.receiveCard(self.cards.pop(0))
+        card = self.cards.pop(0)
+        card.printCard()
+        player.receiveCard(card)
+        print(len(self.cards))
     
     for player in self.players:
       print("Player " + player.name + ":")

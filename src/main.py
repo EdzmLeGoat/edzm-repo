@@ -1,6 +1,7 @@
 #imports
 from components.Game import Game
 from components.Player import Player, ShuffleMethod
+import sys
 #constants
 initialChips = 60
 p1 = Player("Mr. Kirk", [ShuffleMethod.Pharaoh,ShuffleMethod.Pharaoh, ShuffleMethod.Mover], initialChips)
@@ -13,3 +14,4 @@ p6 = Player("pokemon", [ShuffleMethod.Riffle,ShuffleMethod.Mover, ShuffleMethod.
 #start simulations
 game = Game([p1, p2, p3, p4, p5, p6])
 game.simulate(1)
+sys.exit()

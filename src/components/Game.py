@@ -139,7 +139,6 @@ class Game:
       player.eligiblePools.append(pools[poolIndex])
     
     #deal cards
-    print(self.dealingDeckIndex)
     self.shufflingDeckIndex = (self.shufflingDeckIndex + 1) % len(self.decks)
     self.dealingDeckIndex = (self.dealingDeckIndex + 1) % len(self.decks)
     self.decks[self.shufflingDeckIndex].shuffle(self.players[self.preDealerIndex].methods)
