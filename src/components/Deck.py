@@ -24,7 +24,7 @@ class Deck:
         self.cards.append(Card(suit, rank))
         
   def printDeck(self) -> None:
-    index = 1;
+    index = 1
     for card in self.cards:
       print(str(index) + ": ", end="")
       card.printCard()
@@ -85,9 +85,7 @@ class Deck:
         dealingIndex = (dealerIndex + i) % len(self.players)
         player = self.players[dealingIndex]
         card = self.cards.pop(0)
-        card.printCard()
         player.receiveCard(card)
-        print(len(self.cards))
     
     for player in self.players:
       print("Player " + player.name + ":")

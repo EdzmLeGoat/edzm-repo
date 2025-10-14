@@ -1,6 +1,4 @@
 #imports
-import random 
-import math
 from components.Player import Player
 from components.Deck import Deck
 from components.Pool import Pool
@@ -55,13 +53,14 @@ class Game:
   def handlePlayerRound(self, playersIn: list[Player], pools: list[Pool], poolIndex: int, round: int) -> list[Player]:
     print("round:", + round)
     someoneAllIn = False
-    poolIncrease = 0
+    if(round == 1):
+      #first round, set min bet to big blind
+      pools[poolIndex].setMinBet(10)
     for player in playersIn:
       player.getRank()
-      bet = player.decideAction(poolIncrease, someoneAllIn, round)
+      bet = player.decideAction(pools[poolIndex].minBet, someoneAllIn, round)
       if(bet != -1):
-        pools[poolIndex].addChips(bet)
-        pools[poolIndex].addIncrease(bet)
+        pools[poolIndex].addChips(bet, round)
       if player.isAllIn:
         someoneAllIn = True
         #since when a player goes all in, they create a new pool that
@@ -94,12 +93,12 @@ class Game:
         index.append(i)
     if len(index) == 1:
       player = self.players[index[0]]
-      print("Player " + player.name + " won the game with a hand of: ", end="")
+      print("Player " + player.name + " won the game with a hand of: ")
       player.printHand()
       print("They won with a ranking of " + str(player.getRank()) + ".")
       for pool in player.eligiblePools:
         player.winChips(pool.chips)
-      print("Chips won: " + str(player.chips))
+      print("Chips won: " + str(pool.chips))
       
       losers: list[int] = []
       for i in range(len(self.players)):

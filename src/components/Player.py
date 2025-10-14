@@ -223,7 +223,7 @@ class Player:
   #poolIncrease: how much the pool has increased by in the round
   #someoneAllIn: if someone has all inned in the current round
   
-  def runRegularLogic(self, poolIncrease: int):
+  def runRegularLogic(self, minBet: int):
     raiseAmount = 0
     if(self.handRating > 25):
       if self.chips > 50:
@@ -232,8 +232,8 @@ class Player:
         raiseAmount = 20
       else:
         decision = Bet.StayIn
-    elif poolIncrease > self.chips / 8:
-      if poolIncrease > self.chips / 4:
+    elif minBet > self.chips / 8:
+      if minBet > self.chips / 4:
         if random.random() < 0.2:
           decision = Bet.StayIn
         else:
@@ -247,13 +247,13 @@ class Player:
       decision = Bet.StayIn
     return [decision, raiseAmount]
     
-  def decideAction(self, poolIncrease: int, someoneAllIn: bool, bettingRound: int) -> int:
+  def decideAction(self, minBet: int, someoneAllIn: bool, bettingRound: int) -> int:
     if not self.isAllIn:
-      if(poolIncrease > self.chips):
+      if(minBet > self.chips):
         print(f"Player {self.name} does not have enough chips to stay in the round.")
         return self.doFold()
       else:
-        decision = Bet.Fold
+        decision = Bet.Null
         raiseAmount = 0
         #the player always has enough chips to play in here
         if(bettingRound == 1):
@@ -263,7 +263,7 @@ class Player:
               decision = self.randDecision(0.8, Bet.Raise, Bet.StayIn)
               raiseAmount = 10
             else:
-              if(poolIncrease > self.chips / 4):
+              if(minBet > self.chips / 3):
                 decision = self.randDecision(0.2, Bet.StayIn, Bet.Fold)
               else:
                 decision = Bet.StayIn
@@ -276,7 +276,7 @@ class Player:
               decision = Bet.StayIn
           else:
             #if the amount to stay in is too high leave
-            if(poolIncrease > 20 or poolIncrease > self.chips / 4):
+            if(minBet > 20 or minBet > self.chips / 3):
               decision = Bet.Fold
             #stay in
             decision = self.randDecision(0.7, Bet.StayIn, Bet.Fold)
@@ -286,7 +286,7 @@ class Player:
           if(self.handRating > 40):
             #extremely good hand so play a lot of chips
             #go all in to punish those who think it's a bluff
-            decision = self.randDecision(0.3 + (bettingRound - 2)*0.1, Bet.AllIn, Bet.StayIn)
+            decision = self.randDecision(0.6 + (bettingRound - 2)*0.1, Bet.AllIn, Bet.StayIn)
           else:
             #bluffing, only bluff if low on chips because you need to take a risky chance
             if(random.randint(1,bluffChance) and not someoneAllIn and self.chips < 20):
@@ -299,11 +299,11 @@ class Player:
                   #fold because we didn't call the bluff
                   decision = Bet.Fold
                 else: #we called the bluff, so run regular logic.
-                  results = self.runRegularLogic(poolIncrease)
+                  results = self.runRegularLogic(minBet)
                   decision = results[0]
                   raiseAmount = results[1]
               else:
-                results = self.runRegularLogic(poolIncrease)
+                results = self.runRegularLogic(minBet)
                 decision = results[0]
                 raiseAmount = results[1]
             
@@ -311,18 +311,19 @@ class Player:
           return self.doFold()
         else:
           if decision == Bet.Raise:
-            self.doCall(poolIncrease)
+            self.doCall(minBet)
             return self.doRaise(raiseAmount)
           elif decision == Bet.StayIn:
-            if(poolIncrease == 0):
+            if(minBet == 0):
               return self.doCheck()
             else:
-              return self.doCall(poolIncrease)
+              return self.doCall(minBet)
           elif decision == Bet.AllIn:
-            self.doCall(poolIncrease)
+            self.doCall(minBet)
             return self.goAllIn()
-          
+          else:
+            raise Exception("Decision logic failed.")
     else: #you are all in, you can't bet
+      print("Player " + self.name + " is all in and cannot make a decision.")
       return -1 #you can't bet
-    return 0 #catchall
 

@@ -36,5 +36,9 @@ class NoCard(Card):
   def __init__(self):
     super().__init__(Suit.Clubs, Rank.Ace)
     
+  def printCard(self) -> None:
+    print("Error: tried to print a non existent card!")
+    raise ValueError("lymphoma!1x")
+    
 suits = list(Suit)
 ranks = list(Rank)
