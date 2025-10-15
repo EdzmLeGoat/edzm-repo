@@ -49,16 +49,26 @@ class Game:
           print("Game over. " + self.players[0].name + " wins!")   
     for index in indicesOut:
       self.players.pop(index)
+      
+  def getPlayerFromName(self, name: str) -> Player:
+    for player in self.players:
+      if player.name == name:
+        return player
+    raise ValueError("No player with that name found.")
 
-  def handlePlayerRound(self, playersIn: list[Player], pools: list[Pool], poolIndex: int, round: int) -> list[Player]:
+  def handlePlayerRound(self, namesIn: list[str], pools: list[Pool], poolIndex: int, round: int) -> list[str]:
     print("round:", + round)
     someoneAllIn = False
     if(round == 1):
       #first round, set min bet to big blind
       pools[poolIndex].setMinBet(10)
-    for player in playersIn:
+    
+    for name in namesIn:
+      player = self.getPlayerFromName(name)
+      print("players in:", [p for p in namesIn])
       player.getRank()
-      bet = player.decideAction(pools[poolIndex].minBet, someoneAllIn, round)
+      bet = player.decideAction(pools[poolIndex].minBet, someoneAllIn, round, len(namesIn))
+      print(bet)
       if(bet != -1):
         pools[poolIndex].addChips(bet, round)
       if player.isAllIn:
@@ -70,29 +80,31 @@ class Game:
         for player in self.players:
           if not player.isAllIn:
             player.eligiblePools.append(pools[poolIndex])
+            
+      if bet == Bet.Fold:
+        print("Player " + name + " has folded.")
+        namesIn.remove(name)
+        
+      print("players in:", [p for p in namesIn])
+      print("")
         
     pools[poolIndex].resetIncrease()
-    
-    for player in playersIn:
-      if player.bet == Bet.Fold:
-        playersIn.remove(player)
-        
-    print()
-    return playersIn
+    return namesIn
   
-  def decideWinner(self, playersIn: list[Player]) -> None:
+  def decideWinner(self, namesIn: list[str]) -> None:
     #winner decided
     maxRank = 0.0
-    index: list[int] = [0]
-    for i in range(len(playersIn)):
-      playersIn[i].getRank()
-      if playersIn[i].handRating > maxRank:
-        maxRank = playersIn[i].handRating
-        index = [i]
-      elif playersIn[i].handRating == maxRank:
-        index.append(i)
-    if len(index) == 1:
-      player = self.players[index[0]]
+    names: list[str] = []
+    for name in namesIn:
+      player = self.getPlayerFromName(name)
+      player.getRank()
+      if player.handRating > maxRank:
+        maxRank = player.handRating
+        names = [name]
+      elif player.handRating == maxRank:
+        names.append(name)
+    if len(names) == 1:
+      player = self.getPlayerFromName(names[0])
       print("Player " + player.name + " won the game with a hand of: ")
       player.printHand()
       print("They won with a ranking of " + str(player.getRank()) + ".")
@@ -105,6 +117,9 @@ class Game:
         if not self.players[i] == player:
           losers.append(i)
       self.checkPlayerOut(losers)
+    else:
+      print("It's a tie between the players: ")
+      print(names)
   def reset(self, dealingDeckIndex: int) -> None:
     self.players[self.smallBlindIndex].hasSmallBlind = False
     self.players[self.bigBlindIndex].hasBigBlind = False
@@ -133,8 +148,11 @@ class Game:
     self.checkPlayerOut([self.smallBlindIndex, self.bigBlindIndex])
     
     #set up players
-    playersIn = self.players.copy()
-    for player in playersIn:
+    namesIn: list[str] = []
+    for player in self.players:
+      namesIn.append(player.name)
+    
+    for player in self.players:
       player.eligiblePools.append(pools[poolIndex])
     
     #deal cards
@@ -145,20 +163,20 @@ class Game:
     self.decks[self.dealingDeckIndex].deal(self.dealerIndex)
     
     #first bets
-    playersIn = self.handlePlayerRound(playersIn, pools, poolIndex, 1)
+    namesIn = self.handlePlayerRound(namesIn, pools, poolIndex, 1)
     #3 revealed
     self.decks[self.dealingDeckIndex].revealThree()
     #second bet
-    playersIn = self.handlePlayerRound(playersIn, pools, poolIndex, 2)
+    namesIn = self.handlePlayerRound(namesIn, pools, poolIndex, 2)
     #4 revealed
     self.decks[self.dealingDeckIndex].revealNext()
     #third bet
-    playersIn = self.handlePlayerRound(playersIn, pools, poolIndex, 3)
+    namesIn = self.handlePlayerRound(namesIn, pools, poolIndex, 3)
     #final card revealed
     self.decks[self.dealingDeckIndex].revealNext()
     
     #decide winner
-    self.decideWinner(playersIn)
+    self.decideWinner(namesIn)
     
     #reset
     self.reset(self.dealingDeckIndex)

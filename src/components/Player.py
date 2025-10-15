@@ -232,27 +232,26 @@ class Player:
         raiseAmount = 20
       else:
         decision = Bet.StayIn
-    elif minBet > self.chips / 8:
-      if minBet > self.chips / 4:
-        if random.random() < 0.2:
-          decision = Bet.StayIn
-        else:
-          decision = Bet.Fold
+    elif minBet > self.chips / 5:
+      if minBet > self.chips / 3:
+        decision = self.randDecision(0.3, Bet.StayIn, Bet.Fold)
       else:
         if self.handRating > 20:
-          decision = Bet.StayIn
+          decision = self.randDecision(0.9, Bet.StayIn, Bet.Fold)
         else:
-          decision = Bet.Fold
+          decision = self.randDecision(0.7, Bet.StayIn, Bet.Fold)
     else:
       decision = Bet.StayIn
     return [decision, raiseAmount]
     
-  def decideAction(self, minBet: int, someoneAllIn: bool, bettingRound: int) -> int:
+  def decideAction(self, minBet: int, someoneAllIn: bool, bettingRound: int, playersLeft: int) -> int:
+    enoughChips = False
     if not self.isAllIn:
       if(minBet > self.chips):
         print(f"Player {self.name} does not have enough chips to stay in the round.")
         return self.doFold()
       else:
+        enoughChips = True
         decision = Bet.Null
         raiseAmount = 0
         #the player always has enough chips to play in here
@@ -308,6 +307,11 @@ class Player:
                 raiseAmount = results[1]
             
         if decision == Bet.Fold:
+          if(enoughChips and playersLeft == 1):
+            if(minBet == 0):
+              return self.doCheck()
+            else:
+              return self.doCall(minBet)
           return self.doFold()
         else:
           if decision == Bet.Raise:
@@ -327,3 +331,5 @@ class Player:
       print("Player " + self.name + " is all in and cannot make a decision.")
       return -1 #you can't bet
 
+  def toString(self) -> str:
+    return self.name
