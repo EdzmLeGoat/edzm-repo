@@ -205,7 +205,7 @@ class Player:
   def doFold(self) -> int:
     self.bet = Bet.Fold
     print(f"{self.name} folds. {self.reportChips()}")
-    return -1
+    return 0
   
   def goAllIn(self) -> int:
     self.bet = Bet.AllIn
@@ -276,7 +276,7 @@ class Player:
           else:
             #if the amount to stay in is too high leave
             if(minBet > 20 or minBet > self.chips / 3):
-              decision = Bet.Fold
+              decision = self.randDecision(0.1, Bet.StayIn, Bet.Fold)
             #stay in
             decision = self.randDecision(0.7, Bet.StayIn, Bet.Fold)
         elif(bettingRound > 1): #2, 3, or 4
@@ -305,14 +305,15 @@ class Player:
                 results = self.runRegularLogic(minBet)
                 decision = results[0]
                 raiseAmount = results[1]
-            
         if decision == Bet.Fold:
+          print(f"Player {self.name} has decided to fold.")
           if(enoughChips and playersLeft == 1):
             if(minBet == 0):
               return self.doCheck()
             else:
               return self.doCall(minBet)
           return self.doFold()
+        
         else:
           if decision == Bet.Raise:
             self.doCall(minBet)
@@ -327,6 +328,7 @@ class Player:
             return self.goAllIn()
           else:
             raise Exception("Decision logic failed.")
+          
     else: #you are all in, you can't bet
       print("Player " + self.name + " is all in and cannot make a decision.")
       return -1 #you can't bet

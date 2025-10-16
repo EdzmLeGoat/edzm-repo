@@ -65,10 +65,8 @@ class Game:
     
     for name in namesIn:
       player = self.getPlayerFromName(name)
-      print("players in:", [p for p in namesIn])
       player.getRank()
       bet = player.decideAction(pools[poolIndex].minBet, someoneAllIn, round, len(namesIn))
-      print(bet)
       if(bet != -1):
         pools[poolIndex].addChips(bet, round)
       if player.isAllIn:
@@ -81,11 +79,10 @@ class Game:
           if not player.isAllIn:
             player.eligiblePools.append(pools[poolIndex])
             
-      if bet == Bet.Fold:
+      if player.bet == Bet.Fold:
         print("Player " + name + " has folded.")
         namesIn.remove(name)
         
-      print("players in:", [p for p in namesIn])
       print("")
         
     pools[poolIndex].resetIncrease()
