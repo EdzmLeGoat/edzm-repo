@@ -36,23 +36,25 @@ class HandRankings(Enum):
 class Player:
   
   #init method
-  cardOne: Card = NoCard()
-  cardTwo: Card = NoCard()
-  name: str
-  methods: list[ShuffleMethod]
-  chips: int
-  bet: Bet
-  hasBigBlind: bool = False
-  hasSmallBlind: bool = False
-  isDealer: bool = False
-  isAllIn: bool = False
-  eligiblePools: list[Pool] = []
-  handRating: int = 0
+  
   def __init__(self, name: str, shuffleMethod: list[ShuffleMethod], initialChips: int):
     self.name = name
     self.methods = shuffleMethod
     self.chips = initialChips
     self.bet = Bet.Null
+    self.cardOne: Card = NoCard()
+    self.cardTwo: Card = NoCard()
+    self.name: str
+    self.methods: list[ShuffleMethod]
+    self.chips: int
+    self.bet: Bet
+    self.hasBigBlind: bool = False
+    self.hasSmallBlind: bool = False
+    self.isDealer: bool = False
+    self.isAllIn: bool = False
+    self.eligiblePoolIndices: list[int] = []
+    self.handRating: int = 0
+    self.alreadyCalledBluff: bool = False
   
   def receiveCard(self, card: Card) -> None:
     if(type(self.cardOne) == NoCard):
@@ -72,6 +74,10 @@ class Player:
     self.cardOne.printCard()
     print("Card Two: ", end="")
     self.cardTwo.printCard()
+
+  def addIndexToEligiblePools(self, index: int) -> None:
+    print(f"Adding pool index {index} to player {self.name}'s eligible pools.")
+    self.eligiblePoolIndices.append(index)
   
   #returns a float from 0-100 rating how likely the hand is to win
   def rankingToRating(self, handRanks: list[int], handRanking: HandRankings, pairs: list[int]) -> float:
@@ -91,13 +97,17 @@ class Player:
     elif handRanking == HandRankings.ThreeOfAKind:
       return 40 + pairs[0] * 5/12
     elif handRanking == HandRankings.Straight:
-      return 95 + cardBoost
+      return 60 + cardBoost
+    elif handRanking == HandRankings.Flush:
+      return 70 + cardBoost
+    elif handRanking == HandRankings.FullHouse:
+      return 80 + pairs[0] * 5/12 + pairs[1] * 2/12
     else:
       #hand is so good at this point nothing is gonna beat it
       return 100
     
   #presupposes that both cards are given at this point
-  def getRank(self, results: list[Card] = []) -> HandRankings:
+  def getRank(self, results: list[Card]) -> HandRankings:
     card1 = self.cardOne
     card2 = self.cardTwo
     allList = [card1, card2] + results
@@ -111,23 +121,22 @@ class Player:
     handSuits: list[int] = []
     for card in allList:
       handSuits.append(suits.index(card.suit))
+    handSuits.sort()
     
     ranking = HandRankings.HighCard
     
     rankSet = set(handRanks)
     rankSetLength = len(rankSet)
-    suitSet = set(handSuits)
-    suitSetLength = len(suitSet)
+
     numCards = len(allList)
-    
     uniquePairs = []
-    
     #check pairs / of a kind / full house
     if(rankSetLength < numCards):
       #assume pair for now
       for i in range(len(handRanks) - 1):
         if(handRanks[i] == handRanks[i+1]):
           uniquePairs.append(handRanks[i])
+          
       ranking = HandRankings.Pair
           
       if len(uniquePairs) == 2:
@@ -135,32 +144,68 @@ class Player:
           ranking = HandRankings.ThreeOfAKind
         else:
           ranking = HandRankings.TwoPair
-      if len(uniquePairs) == 3:
-        if(uniquePairs[0] == uniquePairs[1] == uniquePairs[2]):
-          ranking = HandRankings.FourOfAKind
-        else:
+          
+      if len(uniquePairs) >= 3:
+        run = 0
+        maxRun = 1
+        prevPair = uniquePairs[0]
+        for pair in uniquePairs:
+          if(pair == prevPair):
+            run += 1
+            if(run > maxRun):
+              maxRun = run
+          else:
+            run = 0
+          prevPair = pair
+                  
+        ranking = HandRankings.TwoPair
+        if(maxRun == 2):
           ranking = HandRankings.FullHouse
-        
+        elif(maxRun == 3):
+          ranking = HandRankings.FourOfAKind
+
     #check flushes
-    if suitSetLength == 1 & numCards == 5:
-      #since sets remove duplicates
+    run = 0
+    maxRun = 1
+    prevSuit = list(handSuits)[0]
+    for suit in list(handSuits):
+      if(suit == prevSuit):
+        run += 1
+        if(run > maxRun):
+          maxRun = run
+          if(maxRun > 4):
+            break
+      else:
+        run = 0
+        prevSuit = suit
+    if(maxRun > 4):
       ranking = HandRankings.Flush
       
     #check straights
-    straight = True
-    for i in range(len(handRanks) - 1):
-      if(handRanks[i] + 1 != handRanks[i+1]):
-        straight = False
-        break
-    
-    if straight:
+    run = 0
+    maxRun = 1
+    starter = list(handRanks)[0]
+    prevRank = list(handRanks)[0]
+    for rank in list(handRanks):
+      if(rank == prevRank + 1):
+        run += 1
+        if(run > maxRun):
+          maxRun = run 
+          if(maxRun > 4):
+            break
+      else:
+        run = 0
+        starter = rank
+      prevRank = rank
+
+    if(maxRun > 4):
       if ranking == HandRankings.Flush:
         ranking = HandRankings.StraightFlush
       else:
         ranking = HandRankings.Straight
     
     #check royal flush
-    if ranking == HandRankings.StraightFlush and handRanks[0] == 12:
+    if ranking == HandRankings.StraightFlush and starter == 12:
       ranking = HandRankings.RoyalFlush
     
     self.handRating = int(self.rankingToRating(handRanks, ranking, uniquePairs))
@@ -169,24 +214,26 @@ class Player:
   
   def loseChips(self, amount: int) -> int:
     self.chips -= amount
+    print(f"{self.name} loses {amount} chips. {self.reportChips()}")
     return amount
   
   def winChips(self, amount: int) -> int:
     self.chips += amount
+    print(f"{self.name} wins {amount} chips. Total chips: {self.chips}")
     return amount
   
   def payBlind(self, amount: int) -> None:
     if(amount == 5):
       self.loseChips(5)
-      print(f"{self.name} pays the small blind price of 5 chips. {self.reportChips()}")
+      print(f"{self.name} pays the small blind price of 5 chips.")
     else:
       self.loseChips(10)
-      print(f"{self.name} pays the big blind price of 10 chips. {self.reportChips()}")
+      print(f"{self.name} pays the big blind price of 10 chips.")
   
   def doRaise(self, amount: int) -> int:
     self.bet = Bet.Raise
     amount = min(self.chips, amount)
-    print(f"{self.name} raises the prize pool by {str(amount)} chips. {self.reportChips()}")
+    print(f"{self.name} raises the prize pool by {str(amount)} chips.")
     return self.loseChips(amount)
       
   def doCall(self, amount: int) -> int:
@@ -194,7 +241,7 @@ class Player:
       return self.doFold()
     else:
       self.bet = Bet.Call
-      print(f"{self.name} calls in, paying {str(amount)} chips. {self.reportChips()}")
+      print(f"{self.name} calls in, paying {str(amount)} chips.")
       return self.loseChips(amount)
   
   def doCheck(self) -> int:
@@ -210,7 +257,8 @@ class Player:
   def goAllIn(self) -> int:
     self.bet = Bet.AllIn
     self.isAllIn = True
-    print(f"{self.name} is going all in, paying {str(self.chips)} chips! {self.reportChips()}")
+    print(f"{self.name} is going all in, paying {str(self.chips)} chips!")
+    self.printHand()
     return self.loseChips(self.chips)
   
   def reportChips(self) -> str:
@@ -280,7 +328,7 @@ class Player:
             #stay in
             decision = self.randDecision(0.7, Bet.StayIn, Bet.Fold)
         elif(bettingRound > 1): #2, 3, or 4
-          bluffCaller = 25 + (bettingRound-2) * 5
+          #bluff chance decreases as rounds go on
           bluffChance = 15 + (bettingRound-2) * 5
           if(self.handRating > 40):
             #extremely good hand so play a lot of chips
@@ -288,16 +336,18 @@ class Player:
             decision = self.randDecision(0.6 + (bettingRound - 2)*0.1, Bet.AllIn, Bet.StayIn)
           else:
             #bluffing, only bluff if low on chips because you need to take a risky chance
-            if(random.randint(1,bluffChance) and not someoneAllIn and self.chips < 20):
+            if(random.randint(1, bluffChance) and not someoneAllIn and self.chips < 20):
               decision = Bet.AllIn
             else:
               #calling a bluff  
-              if(someoneAllIn):
+              if(someoneAllIn and not self.alreadyCalledBluff):
                 #chance to call a buff should be proportional to how good the current hand is
-                if(self.handRating < bluffCaller and not random.randint(1,100) < self.handRating * 3):
-                  #fold because we didn't call the bluff
-                  decision = Bet.Fold
+                if(random.randint(1,100) < self.handRating * 2):
+                  #most likely fold because we didn't call the bluff
+                  decision = self.randDecision(0.2, Bet.StayIn, Bet.Fold)
+                  self.alreadyCalledBluff = True #in case we stayed in still
                 else: #we called the bluff, so run regular logic.
+                  self.alreadyCalledBluff = True
                   results = self.runRegularLogic(minBet)
                   decision = results[0]
                   raiseAmount = results[1]
@@ -316,7 +366,6 @@ class Player:
         
         else:
           if decision == Bet.Raise:
-            self.doCall(minBet)
             return self.doRaise(raiseAmount)
           elif decision == Bet.StayIn:
             if(minBet == 0):
@@ -324,7 +373,6 @@ class Player:
             else:
               return self.doCall(minBet)
           elif decision == Bet.AllIn:
-            self.doCall(minBet)
             return self.goAllIn()
           else:
             raise Exception("Decision logic failed.")
@@ -335,3 +383,12 @@ class Player:
 
   def toString(self) -> str:
     return self.name
+  
+  def reset(self) -> None:
+    self.hasBigBlind = False
+    self.hasSmallBlind = False
+    self.isDealer = False
+    self.isAllIn = False
+    self.eligiblePoolIndices = []
+    self.handRating = 0
+    self.alreadyCalledBluff = False
