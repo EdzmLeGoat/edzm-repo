@@ -14,7 +14,6 @@ class Pool:
     if(not amount == 0):
       self.chips += amount
       if(amount > self.minBet):
-        print(f"Min bet increased from {self.minBet} to {amount}")
         self.minBet = amount
       print(f"Added {amount} chips to the pool. Current total: {self.chips}")
   #called at the end of each betting round

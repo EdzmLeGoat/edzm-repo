@@ -14,4 +14,5 @@ p6 = Player("pokemon", [ShuffleMethod.Riffle,ShuffleMethod.Mover, ShuffleMethod.
 #start simulations
 game = Game([p1, p2, p3, p4, p5, p6])
 game.simulate(1)
+print("Simulation complete.")
 sys.exit()

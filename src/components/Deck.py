@@ -6,13 +6,11 @@ from components.Card import Card, suits, ranks
 class Deck:
   players: list[Player]
   cards: list[Card]
-  discarded: list[Card]
   results: list[Card]
   playerNames: list[str]
   def __init__(self, players: list[Player]):
     self.players = players
     self.cards = []
-    self.discarded = []
     self.results = []
     self.playerNames = []
     for player in players:
@@ -86,13 +84,8 @@ class Deck:
         player = self.players[dealingIndex]
         card = self.cards.pop(0)
         player.receiveCard(card)
-    
-    for player in self.players:
-      print("Player " + player.name + ":")
-      player.printHand() 
       
   def revealThree(self) -> None:
-    self.discarded.append(self.cards.pop(0))
     for _ in range(3):
       self.results.append(self.cards.pop(0))
     
@@ -101,11 +94,16 @@ class Deck:
       self.results[i].printCard()
       
   def revealNext(self) -> None:
-    self.discarded.append(self.cards.pop(0))
     self.results.append(self.cards.pop(0))
     print("Revealed Card:")
     self.results[-1].printCard()
+    print()
     
+  def printRevealedCards(self) -> None:
+    print("Community Cards:")
+    for card in self.results:
+      card.printCard()
+    print()
   def getRanks(self) -> None:
     playerRanks = []
     for player in self.players:
@@ -129,18 +127,13 @@ class Deck:
         player.printHand()
     
   def recycleDiscardedCards(self) -> None:
-    #random throwing in of decks
-    allDiscardedHands = []
-    for player in self.players:
-      allDiscardedHands.append(player.forfeitCards())
-    while len(allDiscardedHands) > 0:
-      thrower = random.randint(0, len(allDiscardedHands) - 1)
-      self.discarded.extend(allDiscardedHands[thrower])
-      
-    #want less evenness here because discarded cards are more likely to be in clumps
-    self.discarded = self.riffleShuffleList(self.discarded, 0.3, 0)
-    self.cards.extend(self.discarded)
-    self.discarded = []
+    discarded = []
+    discarded.extend(self.results)
+    playerIndices = [i for i in range(len(self.players))]
+    while len(playerIndices) > 0:
+      index = playerIndices.pop(random.randint(0, len(playerIndices) - 1))
+      discarded.extend(self.players[index].forfeitCards())
+    self.cards.extend(discarded)
     self.results = []
 
   def shuffle(self, methods: list[ShuffleMethod]) -> None:

@@ -57,11 +57,13 @@ class Game:
     raise ValueError("No player with that name found.")
 
   def handlePlayerRound(self, namesIn: list[str], pools: list[Pool], poolIndex: int, round: int) -> list[str]:
-    print("round:", + round)
+    print("betting round:", + round)
     someoneAllIn = False
     if(round == 1):
       #first round, set min bet to big blind
       pools[poolIndex].setMinBet(10)
+    else:
+      pools[poolIndex].setMinBet(0)
     
     for name in namesIn:
       player = self.getPlayerFromName(name)
@@ -80,7 +82,6 @@ class Game:
             player.eligiblePools.append(pools[poolIndex])
             
       if player.bet == Bet.Fold:
-        print("Player " + name + " has folded.")
         namesIn.remove(name)
         
       print("")
@@ -104,6 +105,7 @@ class Game:
       player = self.getPlayerFromName(names[0])
       print("Player " + player.name + " won the game with a hand of: ")
       player.printHand()
+      self.decks[self.dealingDeckIndex].printRevealedCards()
       print("They won with a ranking of " + str(player.getRank()) + ".")
       for pool in player.eligiblePools:
         player.winChips(pool.chips)
@@ -132,8 +134,8 @@ class Game:
     
     self.decks[dealingDeckIndex].recycleDiscardedCards()
     self.trial += 1
-  def playRound(self):
-    print("Starting Round " + str(self.trial + 1) + ".")
+  def runTrial(self):
+    print("Starting Trial " + str(self.trial + 1) + ".")
     
     poolIndex = 0
     pools: list[Pool] = []
@@ -174,7 +176,6 @@ class Game:
     
     #decide winner
     self.decideWinner(namesIn)
-    
     #reset
     self.reset(self.dealingDeckIndex)
     
@@ -182,11 +183,14 @@ class Game:
     if rounds == -1:
       done = False
       while not done:
-        self.playRound()
+        self.runTrial()
         if(len(self.players) == 1):
           done = True
     else:
+      print("Simulating " + str(rounds) + " rounds.")
       for _ in range(rounds):
-        self.playRound()
+        print("round start")
+        self.runTrial()
+        print("round end")
         if(len(self.players) == 1):
           break
