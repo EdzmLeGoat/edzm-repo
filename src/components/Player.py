@@ -36,7 +36,6 @@ class HandRankings(Enum):
 class Player:
   
   #init method
-  
   def __init__(self, name: str, shuffleMethod: list[ShuffleMethod], initialChips: int):
     self.name = name
     self.methods = shuffleMethod
@@ -48,13 +47,11 @@ class Player:
     self.methods: list[ShuffleMethod]
     self.chips: int
     self.bet: Bet
-    self.hasBigBlind: bool = False
-    self.hasSmallBlind: bool = False
-    self.isDealer: bool = False
     self.isAllIn: bool = False
     self.eligiblePoolIndices: list[int] = []
-    self.handRating: int = 0
+    self.handRating: float = 0
     self.alreadyCalledBluff: bool = False
+    self.ranking: HandRankings = HandRankings.HighCard
   
   def receiveCard(self, card: Card) -> None:
     if(type(self.cardOne) == NoCard):
@@ -76,7 +73,6 @@ class Player:
     self.cardTwo.printCard()
 
   def addIndexToEligiblePools(self, index: int) -> None:
-    print(f"Adding pool index {index} to player {self.name}'s eligible pools.")
     self.eligiblePoolIndices.append(index)
   
   #returns a float from 0-100 rating how likely the hand is to win
@@ -107,10 +103,8 @@ class Player:
       return 100
     
   #presupposes that both cards are given at this point
-  def getRank(self, results: list[Card]) -> HandRankings:
-    card1 = self.cardOne
-    card2 = self.cardTwo
-    allList = [card1, card2] + results
+  def getRankOfCards(self, cardList: list[Card]) -> list:
+    allList = cardList
     
     handRanks: list[int] = []
     for card in allList:
@@ -208,13 +202,33 @@ class Player:
     if ranking == HandRankings.StraightFlush and starter == 12:
       ranking = HandRankings.RoyalFlush
     
-    self.handRating = int(self.rankingToRating(handRanks, ranking, uniquePairs))
     #return the hand ranking
-    return ranking
+    return [ranking, handRanks, uniquePairs]
+  
+  def getHandRank(self, results: list[Card]) -> HandRankings:
+    handRankDetails = self.getRankOfCards(results + [self.cardOne, self.cardTwo])
+    handRanking = handRankDetails[0]
+    handRanks = handRankDetails[1]
+    pairs = handRankDetails[2]
+    handRating = self.rankingToRating(handRanks, handRanking, pairs)
+    
+    if(len(results) > 0):
+      baseRankDetails = self.getRankOfCards(results)
+      baseRanking = baseRankDetails[0]
+      baseRanks = baseRankDetails[1]
+      basePairs = baseRankDetails[2]
+      baseRating = self.rankingToRating(baseRanks, baseRanking, basePairs)
+      
+      self.handRating = handRating - baseRating
+    else:
+      self.handRating = handRating
+    
+    self.ranking = handRanking
+    return handRanking
+ 
   
   def loseChips(self, amount: int) -> int:
     self.chips -= amount
-    print(f"{self.name} loses {amount} chips. {self.reportChips()}")
     return amount
   
   def winChips(self, amount: int) -> int:
@@ -225,10 +239,10 @@ class Player:
   def payBlind(self, amount: int) -> None:
     if(amount == 5):
       self.loseChips(5)
-      print(f"{self.name} pays the small blind price of 5 chips.")
+      print(f"{self.name} pays the small blind price of 5 chips. {self.reportChips()}")
     else:
       self.loseChips(10)
-      print(f"{self.name} pays the big blind price of 10 chips.")
+      print(f"{self.name} pays the big blind price of 10 chips. {self.reportChips()}")
   
   def doRaise(self, amount: int) -> int:
     self.bet = Bet.Raise
@@ -385,10 +399,8 @@ class Player:
     return self.name
   
   def reset(self) -> None:
-    self.hasBigBlind = False
-    self.hasSmallBlind = False
-    self.isDealer = False
     self.isAllIn = False
     self.eligiblePoolIndices = []
     self.handRating = 0
     self.alreadyCalledBluff = False
+    self.ranking = HandRankings.HighCard

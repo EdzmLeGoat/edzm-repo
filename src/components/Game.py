@@ -8,10 +8,9 @@ from components.Player import Bet
 class Game:
   players: list[Player]
   decks: list[Deck]
-  dealerIndex: int = 1
-  trial: int = 0
-  shufflingDeckIndex: int = 0
-  dealingDeckIndex: int = 1
+  dealerIndex: int
+  trial: int
+  dealingDeckIndex: int
   
   #requires 3 people to start
   def __init__(self, players: list[Player]):
@@ -19,10 +18,11 @@ class Game:
       raise ValueError("Must have at least 4 players.")
     self.players = players
     self.decks = [Deck(players), Deck(players)]
-    self.players[(self.dealerIndex + 1) % len(self.players)].hasSmallBlind = True
-    self.players[(self.dealerIndex + 2) % len(self.players)].hasBigBlind = True
-    self.decks[self.shufflingDeckIndex].shuffle(self.players[self.dealerIndex].methods)
 
+    self.dealerIndex = 0
+    self.trial = 0
+    self.dealingDeckIndex = 0
+    
   def checkPlayerOut(self, players: list[Player]) -> None:
     playersOut = []
     for player in players:
@@ -35,24 +35,59 @@ class Game:
       self.players.remove(player)
     print("Players left: " + str(len(self.players)) + ".")
 
-  def checkAllPlayerOut(self) -> None:
-    indicesOut = []
-    for player in self.players:
-      if(player.chips <= 0):
-        print("Player " + player.name + " is out of chips.")
-        print("Players left: " + str(len(self.players)) + ".")
-        indicesOut.append(self.players.index(player))
-        if(len(self.players) == 1):
-          print("Game over. " + self.players[0].name + " wins!")   
-    for index in indicesOut:
-      self.players.pop(index)
-      
   def getPlayerFromName(self, name: str) -> Player:
     for player in self.players:
       if player.name == name:
         return player
     raise ValueError("No player with that name found.")
-
+  
+  def decideWinner(self, pools: list[Pool], namesIn: list[str]) -> None:
+    #winner decided
+    maxRank = 0.0
+    names: list[str] = []
+    for name in namesIn:
+      player = self.getPlayerFromName(name)
+      player.getHandRank(self.decks[self.dealingDeckIndex].results)
+      if player.handRating > maxRank:
+        maxRank = player.handRating
+        names = [name]
+      elif player.handRating == maxRank:
+        names.append(name)
+    if len(names) == 1:
+      player = self.getPlayerFromName(names[0])
+      print("Player " + player.name + " won the game with a hand of: ")
+      player.printHand()
+      self.decks[self.dealingDeckIndex].printRevealedCards()
+      print("They won with a ranking of " + str(player.ranking) + ".")
+      
+      for ind in player.eligiblePoolIndices:
+        player.winChips(pools[ind].chips)
+      
+      losers: list[Player] = []
+      for p in self.players:
+        if p != player:
+          losers.append(p)
+      self.checkPlayerOut(losers)
+    else:
+      print("It's a tie between the players: ")
+      print(names)
+      
+  def reset(self) -> None:
+    
+    for player in self.players:
+      player.reset()
+    self.dealerIndex = (self.dealerIndex + 1) % len(self.players)
+    self.decks[self.dealingDeckIndex].recycleDiscardedCards()
+    self.trial += 1
+    
+    smallBlindIndex = (self.dealerIndex - 2) % len(self.players)
+    bigBlindIndex = (self.dealerIndex - 1) % len(self.players)
+    bigBlindPlayer = self.players[bigBlindIndex]
+    smallBlindPlayer = self.players[smallBlindIndex]
+    bigBlindPlayer.payBlind(10)
+    smallBlindPlayer.payBlind(5)
+    self.checkPlayerOut([self.players[smallBlindIndex], self.players[bigBlindIndex]])
+    
   def handlePlayerRound(self, namesIn: list[str], pools: list[Pool], poolIndex: int, round: int) -> list[str]:
     print("betting round:", + round)
     someoneAllIn = False
@@ -64,7 +99,7 @@ class Game:
     
     for name in namesIn:
       player = self.getPlayerFromName(name)
-      player.getRank(self.decks[self.dealingDeckIndex].results)
+      player.getHandRank(self.decks[self.dealingDeckIndex].results)
       betAmount = player.decideAction(pools[poolIndex].minBet, someoneAllIn, round, len(namesIn))
       if(betAmount != -1):
         pools[poolIndex].addChips(betAmount, round)
@@ -88,62 +123,14 @@ class Game:
     pools[poolIndex].resetIncrease()
     return namesIn
   
-  def decideWinner(self, pools: list[Pool], namesIn: list[str]) -> None:
-    #winner decided
-    maxRank = 0.0
-    names: list[str] = []
-    for name in namesIn:
-      player = self.getPlayerFromName(name)
-      player.getRank(self.decks[self.dealingDeckIndex].results)
-      if player.handRating > maxRank:
-        maxRank = player.handRating
-        names = [name]
-      elif player.handRating == maxRank:
-        names.append(name)
-    if len(names) == 1:
-      player = self.getPlayerFromName(names[0])
-      print("Player " + player.name + " won the game with a hand of: ")
-      player.printHand()
-      self.decks[self.dealingDeckIndex].printRevealedCards()
-      print("They won with a ranking of " + str(player.getRank(self.decks[self.dealingDeckIndex].results)) + ".")
-      print(len(player.eligiblePoolIndices))
-      
-      for ind in player.eligiblePoolIndices:
-        player.winChips(pools[ind].chips)
-      
-      losers: list[Player] = []
-      for p in self.players:
-        if p != player:
-          losers.append(p)
-      self.checkPlayerOut(losers)
-    else:
-      print("It's a tie between the players: ")
-      print(names)
-  def reset(self, dealingDeckIndex: int) -> None:
-    for player in self.players:
-      player.reset()
-      
-    self.dealerIndex = (self.dealerIndex + 1) % len(self.players)
-    
-    self.players[(self.dealerIndex + 1) % len(self.players)].hasSmallBlind = True
-    self.players[(self.dealerIndex + 2) % len(self.players)].hasBigBlind = True
-    self.players[self.dealerIndex].isDealer = True
-      
-    self.decks[dealingDeckIndex].recycleDiscardedCards()
-    self.trial += 1
-  def runTrial(self):
+  def runTrial(self) -> None:
     print("Starting Trial " + str(self.trial + 1) + ".")
     
+    self.reset()
+
     poolIndex = 0
     pools: list[Pool] = []
     pools.append(Pool())
-    smallBlindIndex = (self.dealerIndex + 1) % len(self.players)
-    bigBlindIndex = (self.dealerIndex + 2) % len(self.players)
-    bigBlindPlayer = self.players[bigBlindIndex]
-    smallBlindPlayer = self.players[smallBlindIndex]
-    bigBlindPlayer.payBlind(10)
-    smallBlindPlayer.payBlind(5)
-    self.checkPlayerOut([self.players[smallBlindIndex], self.players[bigBlindIndex]])
     
     #set up players
     namesIn: list[str] = []
@@ -151,14 +138,10 @@ class Game:
       namesIn.append(player.name)
     
     for player in self.players:
-      print("Setting up eligible pools for player:", player.name)
       player.addIndexToEligiblePools(poolIndex)
     
     #deal cards
-    self.shufflingDeckIndex = (self.shufflingDeckIndex + 1) % len(self.decks)
-    self.dealingDeckIndex = (self.dealingDeckIndex + 1) % len(self.decks)
-    self.decks[self.shufflingDeckIndex].shuffle(self.players[(self.dealerIndex - 1) % len(self.players)].methods)
-    self.players[self.dealerIndex].isDealer = True
+    self.decks[self.dealingDeckIndex].shuffle(self.players[self.dealerIndex].methods)
     self.decks[self.dealingDeckIndex].deal(self.dealerIndex)
     
     #first bets
@@ -177,7 +160,6 @@ class Game:
     #decide winner
     self.decideWinner(pools, namesIn)
     #reset
-    self.reset(self.dealingDeckIndex)
     
   def simulate(self, rounds: int = -1) -> None:
     if rounds == -1:
@@ -189,8 +171,6 @@ class Game:
     else:
       print("Simulating " + str(rounds) + " rounds.")
       for _ in range(rounds):
-        print("round start")
         self.runTrial()
-        print("round end")
         if(len(self.players) == 1):
           break

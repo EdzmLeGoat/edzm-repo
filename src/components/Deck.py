@@ -104,29 +104,10 @@ class Deck:
     for card in self.results:
       card.printCard()
     print()
-  def getRanks(self) -> None:
-    playerRanks = []
-    for player in self.players:
-      playerRanks.append(player.getRank(self.results))
-    mostIndex = []
-    highestRank = 0
-    for i in range(len(playerRanks)):
-      if playerRanks[i] >= highestRank:
-        mostIndex = [i]
-        highestRank = playerRanks[i]
-      elif playerRanks[i] == highestRank:
-        mostIndex.append(i)
-        
-    if len(mostIndex) == 1:
-      print("Player " + self.playerNames[mostIndex[0]] + " won the game with a hand of ", end="")
-      self.players[mostIndex[0]].printHand()
-    else:
-      print("Players," + ", ".join(self.playerNames[i] for i in mostIndex) + " tied with a hand of: ", end="")
-      for player in self.players:
-        print(player.name + ":")
-        player.printHand()
-    
+  
   def recycleDiscardedCards(self) -> None:
+    if(len(self.results) == 0):
+      return
     discarded = []
     discarded.extend(self.results)
     playerIndices = [i for i in range(len(self.players))]
