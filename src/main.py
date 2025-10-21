@@ -12,6 +12,7 @@ p5 = Player("minecraft", [ShuffleMethod.Cut,ShuffleMethod.Mover, ShuffleMethod.C
 p6 = Player("pokemon", [ShuffleMethod.Riffle,ShuffleMethod.Mover, ShuffleMethod.Riffle], initialChips)
 
 #start simulations
+print("\n ----------------------------------------- \n")
 game = Game([p1, p2, p3, p4, p5, p6])
 game.simulate(1)
 print("Simulation complete.")

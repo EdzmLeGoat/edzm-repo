@@ -87,20 +87,23 @@ class Player:
     if handRanking == HandRankings.HighCard:
       return cardBoost
     elif handRanking == HandRankings.Pair:
-      return 10 + cardBoost
+      return 15
     elif handRanking == HandRankings.TwoPair:
-      return 25 + pairs[0] * 5/12 + pairs[1] * 5/12
+      return 25
     elif handRanking == HandRankings.ThreeOfAKind:
-      return 40 + pairs[0] * 5/12
+      return 40
     elif handRanking == HandRankings.Straight:
       return 60 + cardBoost
     elif handRanking == HandRankings.Flush:
       return 70 + cardBoost
     elif handRanking == HandRankings.FullHouse:
-      return 80 + pairs[0] * 5/12 + pairs[1] * 2/12
-    else:
-      #hand is so good at this point nothing is gonna beat it
-      return 100
+      return 80
+    elif handRanking == HandRankings.FourOfAKind:
+      return 98
+    elif handRanking == HandRankings.StraightFlush:
+      return 99
+    elif handRanking == HandRankings.RoyalFlush:
+      return 100.0
     
   #presupposes that both cards are given at this point
   def getRankOfCards(self, cardList: list[Card]) -> list:

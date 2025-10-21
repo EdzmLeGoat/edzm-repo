@@ -33,7 +33,6 @@ class Game:
           print("Game over. " + self.players[0].name + " wins!")    
     for player in playersOut:
       self.players.remove(player)
-    print("Players left: " + str(len(self.players)) + ".")
 
   def getPlayerFromName(self, name: str) -> Player:
     for player in self.players:
@@ -69,8 +68,29 @@ class Game:
           losers.append(p)
       self.checkPlayerOut(losers)
     else:
-      print("It's a tie between the players: ")
-      print(names)
+      print("It's a tie between the following players:")
+      for name in names:
+        player = self.getPlayerFromName(name)
+        print("Player " + player.name + " with a hand of: ")
+        player.printHand()
+        self.decks[self.dealingDeckIndex].printRevealedCards()
+        print("They tied with a ranking of " + str(player.ranking) + ".")
+        
+      #split pools
+      for ind in range(len(pools)):
+        splitAmount = pools[ind].chips // len(names)
+        for name in names:
+          player = self.getPlayerFromName(name)
+          if ind in player.eligiblePoolIndices:
+            player.winChips(splitAmount)
+            
+      #check for losers
+      losers: list[Player] = []
+      for p in self.players:
+        if p.name not in names:
+          losers.append(p)
+      
+      self.checkPlayerOut(losers)
       
   def reset(self) -> None:
     
@@ -89,7 +109,7 @@ class Game:
     self.checkPlayerOut([self.players[smallBlindIndex], self.players[bigBlindIndex]])
     
   def handlePlayerRound(self, namesIn: list[str], pools: list[Pool], poolIndex: int, round: int) -> list[str]:
-    print("betting round:", + round)
+    print("\nBetting Round:", str(round) + "\n")
     someoneAllIn = False
     if(round == 1):
       #first round, set min bet to big blind
@@ -107,12 +127,10 @@ class Game:
           someoneAllIn = True
           #since when a player goes all in, they create a new pool that
           #they are not eligible for
-          print("making new pool")
           pools.append(Pool())
           poolIndex += 1
           for player in self.players:
             if not player.isAllIn:
-              print("adding eligible player to new pool:", player.name)
               player.addIndexToEligiblePools(poolIndex)
             
       if player.bet == Bet.Fold:
